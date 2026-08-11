@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What Should I Drink? — A Beer Mood Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E9DFC8;
+    --paper-dim:#DED1B2;
+    --ink:#221A11;
+    --copper:#B5622A;
+    --copper-deep:#8C4A1E;
+    --sage:#77816B;
+    --ale-red:#7A2E1D;
+    --foam:#F6F1E2;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .noise{
+    position:fixed;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:multiply;z-index:1;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'%3E%3C/feTurbulence%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  header{
+    padding:2.5rem 1.5rem 1rem;
+    max-width:900px;margin:0 auto;
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:1px solid rgba(34,26,17,.15);
+  }
+  .brand{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--copper-deep);
+  }
+  .tagline{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.68rem;letter-spacing:.08em;color:var(--sage);
+  }
+  main{max-width:900px;margin:0 auto;padding:0 1.5rem;position:relative;z-index:2;}
+
+  /* HERO */
+  .hero{
+    display:grid;grid-template-columns:1.3fr 1fr;gap:2rem;align-items:center;
+    padding:3.5rem 0 3rem;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(2.4rem,5.5vw,4rem);
+    line-height:1.02;
+    margin:0 0 1rem;
+    letter-spacing:-.01em;
+  }
+  h1 em{
+    font-style:italic;font-weight:400;color:var(--copper);
+  }
+  .hero p{
+    font-size:1.05rem;line-height:1.55;color:#3a2f20;max-width:38ch;margin:0 0 1.6rem;
+  }
+  .start-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.85rem;letter-spacing:.06em;text-transform:uppercase;
+    background:var(--ink);color:var(--foam);
+    border:none;padding:.95rem 1.6rem;cursor:pointer;
+    border-radius:var(--radius);
+    transition:background .2s ease, transform .15s ease;
+  }
+  .start-btn:hover{background:var(--copper-deep);}
+  .start-btn:active{transform:scale(.98);}
+  .start-btn:focus-visible{outline:2px solid var(--copper);outline-offset:3px;}
+
+  /* GLASS — signature element */
+  .glass-wrap{display:flex;justify-content:center;}
+  svg#glass{width:170px;height:230px;overflow:visible;}
+  #fill{transition:transform 1.1s cubic-bezier(.65,0,.35,1);}
+  #foam-top{transition:transform 1.1s cubic-bezier(.65,0,.35,1);}
+  .bubble{animation:rise linear infinite;opacity:0;}
+  @keyframes rise{
+    0%{transform:translateY(0);opacity:0;}
+    10%{opacity:.55;}
+    90%{opacity:.35;}
+    100%{transform:translateY(-140px);opacity:0;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .bubble{animation:none;display:none;}
+    #fill,#foam-top{transition:none;}
+  }
+
+  /* QUIZ */
+  #quiz{
+    display:none;
+    padding:2.5rem 0 4rem;
+    border-top:1px solid rgba(34,26,17,.15);
+  }
+  #quiz.active{display:block;}
+  .progress-label{
+    font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.1em;
+    color:var(--sage);text-transform:uppercase;margin-bottom:.6rem;
+  }
+  .q{display:none;}
+  .q.active{display:block;animation:fadeUp .45s ease both;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .q h2{
+    font-family:'Fraunces',serif;font-weight:600;font-size:clamp(1.5rem,3.2vw,2.1rem);
+    margin:.2rem 0 1.6rem;max-width:22ch;
+  }
+  .options{display:grid;gap:.7rem;max-width:520px;}
+  .opt{
+    text-align:left;
+    background:var(--foam);
+    border:1px solid rgba(34,26,17,.18);
+    border-radius:var(--radius);
+    padding:.95rem 1.15rem;
+    font-family:'Inter',sans-serif;font-size:.98rem;
+    cursor:pointer;
+    display:flex;align-items:center;gap:.8rem;
+    transition:border-color .15s ease, background .15s ease, transform .1s ease;
+  }
+  .opt:hover{border-color:var(--copper);background:#fbf7ec;}
+  .opt:active{transform:scale(.995);}
+  .opt:focus-visible{outline:2px solid var(--copper);outline-offset:2px;}
+  .opt .glyph{
+    font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--copper-deep);
+    width:1.4rem;flex-shrink:0;
+  }
+
+  /* RESULT */
+  #result{display:none;padding:2.5rem 0 4rem;border-top:1px solid rgba(34,26,17,.15);}
+  #result.active{display:block;animation:fadeUp .5s ease both;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--sage);margin-bottom:.5rem;
+  }
+  #result h2{
+    font-family:'Fraunces',serif;font-weight:700;font-size:clamp(2.1rem,5vw,3.2rem);
+    margin:0 0 1rem;color:var(--ale-red);
+  }
+  #result .desc{font-size:1.05rem;line-height:1.6;max-width:56ch;color:#3a2f20;margin-bottom:1.6rem;}
+  .stat-row{display:flex;gap:2rem;flex-wrap:wrap;margin-bottom:2rem;}
+  .stat{font-family:'IBM Plex Mono',monospace;}
+  .stat .n{font-size:1.3rem;color:var(--copper-deep);display:block;}
+  .stat .l{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sage);}
+  .again{
+    font-family:'IBM Plex Mono',monospace;font-size:.8rem;letter-spacing:.05em;text-transform:uppercase;
+    background:none;border:1px solid var(--ink);color:var(--ink);padding:.8rem 1.4rem;cursor:pointer;
+    border-radius:var(--radius);
+  }
+  .again:hover{background:var(--ink);color:var(--foam);}
+
+  .note{
+    max-width:56ch;margin-top:2.5rem;padding-top:1.5rem;border-top:1px dashed rgba(34,26,17,.25);
+    font-size:.85rem;line-height:1.6;color:#5a4d3a;
+  }
+  .note strong{color:var(--ale-red);}
+
+  footer{
+    max-width:900px;margin:0 auto;padding:2rem 1.5rem 3rem;
+    font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--sage);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;
+  }
+
+  @media (max-width:700px){
+    .hero{grid-template-columns:1fr;}
+    .glass-wrap{order:-1;}
+    svg#glass{width:120px;height:160px;}
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<header>
+  <span class="brand">Pour Judgment</span>
+  <span class="tagline">a mood‑to‑mug finder</span>
+</header>
+
+<main>
+  <section class="hero" id="hero">
+    <div>
+      <h1>What's your<br><em>pour</em> today?</h1>
+      <p>Answer four quick questions about your mood, and we'll pull the style of beer that actually fits it — not just whatever's cold.</p>
+      <button class="start-btn" id="startBtn">Start pouring →</button>
+    </div>
+    <div class="glass-wrap">
+      <svg id="glass" viewBox="0 0 170 230" fill="none">
+        <defs>
+          <clipPath id="glassClip">
+            <path d="M28 20 L32 205 Q85 220 138 205 L142 20 Z"/>
+          </clipPath>
+        </defs>
+        <path d="M28 20 L32 205 Q85 220 138 205 L142 20" stroke="#221A11" stroke-width="3" fill="none" stroke-linejoin="round"/>
+        <path d="M142 55 C168 55 168 100 142 100" stroke="#221A11" stroke-width="3" fill="none"/>
+        <g clip-path="url(#glassClip)">
+          <rect id="fill" x="20" y="230" width="140" height="230" fill="#C17817" transform="translate(0,0)"/>
+          <rect id="foam-top" x="20" y="222" width="140" height="16" fill="#F6F1E2" transform="translate(0,0)"/>
+          <circle class="bubble" cx="60" cy="180" r="2.2" fill="#F6F1E2" style="animation-duration:3.1s;animation-delay:.2s"/>
+          <circle class="bubble" cx="90" cy="190" r="1.6" fill="#F6F1E2" style="animation-duration:2.6s;animation-delay:1.1s"/>
+          <circle class="bubble" cx="110" cy="175" r="2" fill="#F6F1E2" style="animation-duration:3.4s;animation-delay:.7s"/>
+          <circle class="bubble" cx="75" cy="200" r="1.4" fill="#F6F1E2" style="animation-duration:2.9s;animation-delay:1.6s"/>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <div class="progress-label" id="progressLabel">Question 1 of 7</div>
+
+    <div class="q active" data-q="0">
+      <h2>How's the mood right now?</h2>
+      <div class="options">
+        <button class="opt" data-trait="mood" data-val="relaxed"><span class="glyph">01</span> Winding down, low key</button>
+        <button class="opt" data-trait="mood" data-val="social"><span class="glyph">02</span> Out with people, upbeat</button>
+        <button class="opt" data-trait="mood" data-val="adventurous"><span class="glyph">03</span> Feeling curious, want something different</button>
+        <button class="opt" data-trait="mood" data-val="cozy"><span class="glyph">04</span> Cold out, want something warming</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="1">
+      <h2>What sounds better?</h2>
+      <div class="options">
+        <button class="opt" data-trait="flavor" data-val="crisp"><span class="glyph">01</span> Light and crisp</button>
+        <button class="opt" data-trait="flavor" data-val="bitter"><span class="glyph">02</span> Bitter, hoppy, punchy</button>
+        <button class="opt" data-trait="flavor" data-val="malty"><span class="glyph">03</span> Rich, malty, dark</button>
+        <button class="opt" data-trait="flavor" data-val="fruity"><span class="glyph">04</span> Fruity or a little tart</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="2">
+      <h2>What's on the table?</h2>
+      <div class="options">
+        <button class="opt" data-trait="food" data-val="spicy"><span class="glyph">01</span> Spicy food</button>
+        <button class="opt" data-trait="food" data-val="grill"><span class="glyph">02</span> Something off the grill</button>
+        <button class="opt" data-trait="food" data-val="dessert"><span class="glyph">03</span> Dessert or cheese board</button>
+        <button class="opt" data-trait="food" data-val="none"><span class="glyph">04</span> Just the drink, no food</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="3">
+      <h2>What's the weather like?</h2>
+      <div class="options">
+        <button class="opt" data-trait="weather" data-val="hot"><span class="glyph">01</span> Hot, want something refreshing</button>
+        <button class="opt" data-trait="weather" data-val="mild"><span class="glyph">02</span> Mild, doesn't matter much</button>
+        <button class="opt" data-trait="weather" data-val="cold"><span class="glyph">03</span> Cold or rainy</button>
+        <button class="opt" data-trait="weather" data-val="any"><span class="glyph">04</span> Indoors, weather's irrelevant</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="4">
+      <h2>How strong do you want it?</h2>
+      <div class="options">
+        <button class="opt" data-trait="strength" data-val="sessionable"><span class="glyph">01</span> Light — I might have a few</button>
+        <button class="opt" data-trait="strength" data-val="standard"><span class="glyph">02</span> Normal, doesn't matter</button>
+        <button class="opt" data-trait="strength" data-val="strong"><span class="glyph">03</span> Strong — one is plenty</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="5">
+      <h2>Where are you drinking it?</h2>
+      <div class="options">
+        <button class="opt" data-trait="setting" data-val="home"><span class="glyph">01</span> Home, unwinding solo</button>
+        <button class="opt" data-trait="setting" data-val="bar"><span class="glyph">02</span> Bar or restaurant</button>
+        <button class="opt" data-trait="setting" data-val="outdoor"><span class="glyph">03</span> Outdoors — patio, beach, backyard</button>
+        <button class="opt" data-trait="setting" data-val="party"><span class="glyph">04</span> Party or big gathering</button>
+      </div>
+    </div>
+
+    <div class="q" data-q="6">
+      <h2>Familiar or new?</h2>
+      <div class="options">
+        <button class="opt" data-trait="familiarity" data-val="classic"><span class="glyph">01</span> Give me something reliable</button>
+        <button class="opt" data-trait="familiarity" data-val="craft"><span class="glyph">02</span> I want to try something craft/interesting</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="result">
+    <div class="eyebrow">Your pour</div>
+    <h2 id="resultName">—</h2>
+    <p class="desc" id="resultDesc">—</p>
+    <div class="stat-row">
+      <div class="stat"><span class="n" id="statABV">—</span><span class="l">Typical ABV</span></div>
+      <div class="stat"><span class="n" id="statBitterness">—</span><span class="l">Bitterness</span></div>
+      <div class="stat"><span class="n" id="statServe">—</span><span class="l">Best served</span></div>
+    </div>
+    <div class="eyebrow">Try a bottle of</div>
+    <h3 id="resultBrand" style="font-family:'Fraunces',serif;font-weight:600;font-size:1.4rem;margin:.2rem 0 1.8rem;color:var(--copper-deep);">—</h3>
+    <button class="again" id="againBtn">Pour again</button>
+    <p class="note"><strong>Drink responsibly.</strong> This tool suggests a <em>style</em> of beer based on taste, not a quantity. Pace yourself, eat something, stay hydrated, and never drink and drive.</p>
+  </section>
+
+  <!-- Ad slot placeholder: replace with your AdSense unit once approved -->
+  <!-- <ins class="adsbygoogle" ...></ins> -->
+</main>
+
+<footer>
+  <span>Pour Judgment</span>
+  <span>Made for people who overthink small decisions</span>
+</footer>
+
+<script>
+(function(){
+  const styles = {
+    pilsner: {
+      name:"Pilsner",
+      desc:"A clean, crisp lager built for refreshment. Light body, gentle bitterness, and nothing to overthink — the beer equivalent of a cold glass of water that happens to be delicious.",
+      abv:"4.5–5.2%", bitterness:"Low–Med", serve:"Ice cold",
+      brands:{classic:["Pilsner Urquell","Stella Artois"],craft:["Firestone Walker Pivo Pils","Trumer Pils"]}
+    },
+    ipa: {
+      name:"IPA",
+      desc:"Big, resinous hop character up front — pine, citrus, sometimes tropical fruit — with a dry, bitter finish. For when you want a beer with something to say.",
+      abv:"6–7.5%", bitterness:"High", serve:"Cool, not cold",
+      brands:{classic:["Sierra Nevada Torpedo","Lagunitas IPA"],craft:["Tree House Julius","Russian River Blind Pig"]}
+    },
+    stout: {
+      name:"Stout",
+      desc:"Roasted, dark, and full-bodied — think coffee and dark chocolate in liquid form. Slow-sipping and satisfying, especially once the temperature drops.",
+      abv:"5–8%", bitterness:"Med", serve:"Cellar temp",
+      brands:{classic:["Guinness Draught","Left Hand Milk Stout"],craft:["Founders Breakfast Stout","Bell's Kentucky Breakfast Stout"]}
+    },
+    hefeweizen: {
+      name:"Hefeweizen",
+      desc:"A cloudy German wheat beer with notes of banana and clove from the yeast. Soft, fruity, and easy to drink without being sweet.",
+      abv:"4.9–5.6%", bitterness:"Low", serve:"Cold",
+      brands:{classic:["Weihenstephaner Hefeweissbier","Paulaner Hefe-Weissbier"],craft:["Live Oak Hefeweizen","Ayinger Bräu-Weisse"]}
+    },
+    saison: {
+      name:"Saison",
+      desc:"A dry, peppery farmhouse ale with a fruity, effervescent character. Sophisticated but not fussy — built to go with a meal.",
+      abv:"5–7%", bitterness:"Low–Med", serve:"Cool",
+      brands:{classic:["Saison Dupont"],craft:["Boulevard Tank 7","Hill Farmstead Anna"]}
+    },
+    amber: {
+      name:"Amber Ale",
+      desc:"Caramel malt sweetness balanced against a moderate hop bite. Reliable, food-friendly, and hard to dislike.",
+      abv:"4.5–6%", bitterness:"Med", serve:"Cool",
+      brands:{classic:["Fat Tire Amber Ale","Killian's Irish Red"],craft:["Alaskan Amber","Anderson Valley Boont Amber"]}
+    },
+    sour: {
+      name:"Sour / Gose",
+      desc:"Tart and bright, sometimes salty, occasionally fruited. A left-field pick for when a regular beer feels too predictable.",
+      abv:"4–5.5%", bitterness:"Low", serve:"Cold",
+      brands:{classic:["Anderson Valley Blood Orange Gose"],craft:["The Bruery Tart of Darkness","Jester King Le Petit Prince"]}
+    },
+    porter: {
+      name:"Porter",
+      desc:"A little lighter than a stout but still dark and chocolatey, with a smooth, easy-drinking body. Great cold-weather comfort beer.",
+      abv:"4.5–6%", bitterness:"Low–Med", serve:"Cellar temp",
+      brands:{classic:["Fuller's London Porter","Deschutes Black Butte Porter"],craft:["Great Lakes Edmund Fitzgerald Porter"]}
+    },
+    tripel: {
+      name:"Belgian Tripel",
+      desc:"Deceptively strong and dangerously smooth, with notes of banana, clove, and a peppery, boozy warmth. Sip slowly.",
+      abv:"7.5–9.5%", bitterness:"Med", serve:"Cool",
+      brands:{classic:["Chimay White (Tripel)","Westmalle Tripel"],craft:["Allagash Tripel","Victory Golden Monkey"]}
+    },
+    wit: {
+      name:"Belgian Witbier",
+      desc:"A pale, hazy wheat beer spiced with coriander and orange peel. Light, zesty, and built for warm weather and light food.",
+      abv:"4.5–5.5%", bitterness:"Low", serve:"Cold",
+      brands:{classic:["Hoegaarden","Blue Moon Belgian White"],craft:["Allagash White","St. Bernardus Witbier"]}
+    }
+  };
+
+  const answers = {};
+  const questions = document.querySelectorAll('.q');
+  const total = questions.length;
+  const hero = document.getElementById('hero');
+  const quiz = document.getElementById('quiz');
+  const resultSec = document.getElementById('result');
+  const progressLabel = document.getElementById('progressLabel');
+  const fill = document.getElementById('fill');
+  const foamTop = document.getElementById('foam-top');
+
+  function setPour(step){
+    // step 0..total -> fill rises from 0 to ~185 px tall
+    const maxRise = 185;
+    const rise = (step/total) * maxRise;
+    fill.style.transform = `translateY(${-rise}px)`;
+    foamTop.style.transform = `translateY(${-rise}px)`;
+  }
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    hero.style.display = 'none';
+    quiz.classList.add('active');
+    setPour(0);
+  });
+
+  document.querySelectorAll('.opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const trait = btn.dataset.trait;
+      const val = btn.dataset.val;
+      answers[trait] = val;
+      const currentQ = btn.closest('.q');
+      const idx = parseInt(currentQ.dataset.q, 10);
+      currentQ.classList.remove('active');
+      setPour(idx+1);
+      if (idx+1 < total){
+        const next = document.querySelector(`.q[data-q="${idx+1}"]`);
+        next.classList.add('active');
+        progressLabel.textContent = `Question ${idx+2} of ${total}`;
+      } else {
+        quiz.classList.remove('active');
+        showResult();
+      }
+    });
+  });
+
+  function pick(){
+    const { mood, flavor, food, weather, strength, setting, familiarity } = answers;
+    // simple weighted scoring
+    const scores = {};
+    Object.keys(styles).forEach(k => scores[k] = 0);
+
+    if (flavor === 'crisp'){ scores.pilsner+=2; scores.hefeweizen+=1; scores.wit+=1; }
+    if (flavor === 'bitter'){ scores.ipa+=3; scores.amber+=1; }
+    if (flavor === 'malty'){ scores.stout+=2; scores.porter+=2; scores.tripel+=1; }
+    if (flavor === 'fruity'){ scores.sour+=2; scores.wit+=1; scores.hefeweizen+=1; scores.saison+=1; }
+
+    if (mood === 'relaxed'){ scores.porter+=1; scores.amber+=1; scores.pilsner+=1; }
+    if (mood === 'social'){ scores.ipa+=1; scores.amber+=1; scores.pilsner+=1; }
+    if (mood === 'adventurous'){ scores.sour+=2; scores.tripel+=1; scores.saison+=1; }
+    if (mood === 'cozy'){ scores.stout+=2; scores.porter+=1; scores.tripel+=1; }
+
+    if (food === 'spicy'){ scores.hefeweizen+=1; scores.pilsner+=1; scores.wit+=1; }
+    if (food === 'grill'){ scores.amber+=2; scores.ipa+=1; }
+    if (food === 'dessert'){ scores.stout+=2; scores.tripel+=1; }
+    if (food === 'none'){ scores.ipa+=1; scores.sour+=1; }
+
+    if (weather === 'hot'){ scores.pilsner+=2; scores.wit+=1; scores.sour+=1; }
+    if (weather === 'cold'){ scores.stout+=2; scores.porter+=1; scores.tripel+=1; }
+    if (weather === 'mild'){ scores.amber+=1; scores.saison+=1; }
+    if (weather === 'any'){ scores.ipa+=1; scores.tripel+=1; }
+
+    if (strength === 'sessionable'){ scores.pilsner+=2; scores.wit+=1; scores.hefeweizen+=1; scores.sour+=1; }
+    if (strength === 'strong'){ scores.tripel+=2; scores.stout+=1; scores.ipa+=1; }
+
+    if (setting === 'home'){ scores.stout+=1; scores.porter+=1; }
+    if (setting === 'bar'){ scores.ipa+=1; scores.amber+=1; }
+    if (setting === 'outdoor'){ scores.pilsner+=1; scores.wit+=1; scores.sour+=1; }
+    if (setting === 'party'){ scores.pilsner+=1; scores.amber+=1; scores.ipa+=1; }
+
+    if (familiarity === 'craft'){ scores.sour+=1; scores.saison+=1; scores.tripel+=1; }
+    if (familiarity === 'classic'){ scores.pilsner+=1; scores.amber+=1; scores.stout+=1; }
+
+    let best = 'pilsner', bestScore = -1;
+    Object.entries(scores).forEach(([k,v]) => {
+      if (v > bestScore){ bestScore = v; best = k; }
+    });
+    return best;
+  }
+
+  function showResult(){
+    const key = pick();
+    const s = styles[key];
+    document.getElementById('resultName').textContent = s.name;
+    document.getElementById('resultDesc').textContent = s.desc;
+    document.getElementById('statABV').textContent = s.abv;
+    document.getElementById('statBitterness').textContent = s.bitterness;
+    document.getElementById('statServe').textContent = s.serve;
+
+    const pool = answers.familiarity === 'craft' ? s.brands.craft : s.brands.classic;
+    const brand = pool[Math.floor(Math.random() * pool.length)];
+    document.getElementById('resultBrand').textContent = brand;
+
+    resultSec.classList.add('active');
+  }
+
+  document.getElementById('againBtn').addEventListener('click', () => {
+    Object.keys(answers).forEach(k => delete answers[k]);
+    resultSec.classList.remove('active');
+    questions.forEach(q => q.classList.remove('active'));
+    document.querySelector('.q[data-q="0"]').classList.add('active');
+    progressLabel.textContent = `Question 1 of ${total}`;
+    hero.style.display = 'grid';
+    quiz.classList.remove('active');
+    setPour(0);
+  });
+})();
+</script>
+
+</body>
+</html>
